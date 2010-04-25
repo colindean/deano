@@ -108,7 +108,7 @@ class ErrolRoute {
 	private $handler;
 	private $method;
 
-	function __construct($path, $handler, $method){
+	function __construct($path, $handler, $method=null){
 		$this->path = $path;
 		$this->handler = $handler;
 		$this->method = $method;
@@ -123,6 +123,19 @@ function ErrolRoutingTable implements Iterator, Countable {
 		$this->list = array();
 	}
 
+	public addRoute(ErrolRoute $route){
+		$this->list[] = $route;
+	}
+
+	public getRoute($location, $method=null){
+		//this needs to be made more efficient. a lot more efficient.
+		foreach($this->list as $route){
+			if($route->location == $location && $route->method = $method){
+				return $route;
+			}
+		}
+	}
+  /*
 	public getRoute($location, $method=null){
 		if(!array_key_exists($location, $this->list)){
 			throw new ErrolRouteNotFoundException($location, $method);
@@ -149,6 +162,7 @@ function ErrolRoutingTable implements Iterator, Countable {
 			$this->list[$location] = array($method => $handler);
 		}
 	}
+	*/
 	public function count(){return count($this->list);}
 	public function key(){return key($this->list);}
 	public function current(){return current($this->list);}
