@@ -119,6 +119,10 @@ class ErrolRoute {
 function ErrolRoutingTable implements Iterator, Countable {
 	private $list;
 
+	public function __construct(){
+		$this->list = array();
+	}
+
 	public getRoute($location, $method=null){
 		if(!array_key_exists($location, $this->list)){
 			throw new ErrolRouteNotFoundException($location, $method);
