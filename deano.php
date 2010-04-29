@@ -1,9 +1,8 @@
 <?php
 /****
-Errol PHP framework
+Deano PHP framework
 by Colin Dean
 
-"I guess she thought he was Errol Flynn"
 ****/
 //////////////////////// FUNCTIONS /////////////////////////////
 /**
@@ -12,7 +11,7 @@ by Colin Dean
  * Supply a method to use only a certain HTTP Method to react to the call.
  * Valid methods: GET, POST, PUT, DELETE, HEAD, OPTIONS, TRACK, TRACE
  *
- * @throws RouteExistsException
+ * @throws DeanoRouteExistsException
  * @param regex $path a regex string which will match the path
  * @param function $handler the handler to be called when the path is activated
  * @param string $method optional, set to handle certain HTTP methods (CRUD)
@@ -20,19 +19,19 @@ by Colin Dean
 function route(/* regex */ $path, 
 							 /*function or method*/ $handler, 
 							 /*string*/ $method=null){
-	ErrolRouter::defineRoute($path, $handler, $method);
+	DeanoRouter::defineRoute($path, $handler, $method);
 }
 /**
  * Add an error handler in userspace. The error handler function must accept
  * a single parameter, an instance of Exception.
  *
- * @throws RouteExistsException
+ * @throws DeanoRouteExistsException
  * @param int $code The HTTP Status code associated with the handler
  * @param function $handler The function to be called when the code is tripped
 **/
 function errorHandler(/* int matching http error code */ $code,
 											/*function or method*/ $handler){
-	ErrolRouter::addErrorHandler($code, $handler);
+	DeanoRouter::addErrorHandler($code, $handler);
 }
 /**
  * Return the relative URL for a certain handler. Use this to set routes and
@@ -42,10 +41,10 @@ function errorHandler(/* int matching http error code */ $code,
  * @return string the path which should be used
  **/
 function url_for(/*function*/$handler){
-  return ErrorRouter::getPathForHandler($handler);
+  return DeanoRouter::getPathForHandler($handler);
 }
 ////////////////////////// CLASSES //////////////////////////////
-class ErrolRouter {
+class DeanoRouter {
 
 	static private handlerList = array();
 	static private errorHandlers = array();
@@ -58,7 +57,7 @@ class ErrolRouter {
 												 /*function or method*/ $handler, 
 												 /*string*/ $method=null){
 		if( array_key_exists ($code, self::$handlerList) ){
-			throw new ErrolRouteDuplicationException($path, $handler);
+			throw new DeanoRouteDuplicationException($path, $handler);
 		} else {
 			self::$handlerList[$path] = array('handler'=>$handler, 
 																				'method'=>$method);
@@ -68,7 +67,7 @@ class ErrolRouter {
 	static public function addErrorHandler(/*int matching http error code*/ $code,
 											/*function or method*/ $handler){
 		if( array_key_exists ($code, self::$errorHandlers) ){
-			throw new ErrolRouteDuplicationException($code, $handler);
+			throw new DeanoRouteDuplicationException($code, $handler);
 		} else {
 			self::$errorHandlers[$code] = $handler;
 		}
@@ -78,14 +77,14 @@ class ErrolRouter {
 		if( array_key_exists($path, self::$handlerList) ){
 			return self::$handlerList[$path];
 		} else {
-			throw new ErrolRouteNotFoundException(404, $path);
+			throw new DeanoRouteNotFoundException(404, $path);
 		}
   }
 	static public function getErrorHandler(/*int*/$code){
 		if( array_key_exists($path, self::$errorHandlers) ){
 			return self::$errorHandlers[$code];
 		} else {
-			return "ErrolRouter::defaultErrorHandler";
+			return "DeanoRouter::defaultErrorHandler";
 		}
 	}
 
@@ -95,7 +94,7 @@ class ErrolRouter {
 		try {
 			$handler = self::getHandler($path);
 			$handler();
-		} catch (ErrolRouteNotFoundException $routeException) {
+		} catch (DeanoRouteNotFoundException $routeException) {
 			$errorHandler = self::$getErrorHandler($routerException->code);
 			$errorHandler($routeException);
 		}
@@ -103,7 +102,7 @@ class ErrolRouter {
 
 }
 
-class ErrolRoute {
+class DeanoRoute {
 	private $path;
 	private $handler;
 	private $method;
@@ -116,14 +115,14 @@ class ErrolRoute {
 
 }
 
-function ErrolRoutingTable implements Iterator, Countable {
+function DeanoRoutingTable implements Iterator, Countable {
 	private $list;
 
 	public function __construct(){
 		$this->list = array();
 	}
 
-	public addRoute(ErrolRoute $route){
+	public addRoute(DeanoRoute $route){
 		$this->list[] = $route;
 	}
 
@@ -138,7 +137,7 @@ function ErrolRoutingTable implements Iterator, Countable {
   /*
 	public getRoute($location, $method=null){
 		if(!array_key_exists($location, $this->list)){
-			throw new ErrolRouteNotFoundException($location, $method);
+			throw new DeanoRouteNotFoundException($location, $method);
 		}
 		$handlerSet = $this->list[$location];
 		if(is_string($handlerSet){
@@ -157,7 +156,7 @@ function ErrolRoutingTable implements Iterator, Countable {
 			$this->list[$location] = $handler;
 		} else {
 			if(array_key_exists($method, $this->list[$location])){
-				throw new ErrolRouteDuplicationException($location, $handler, $method);
+				throw new DeanoRouteDuplicationException($location, $handler, $method);
 			}
 			$this->list[$location] = array($method => $handler);
 		}
@@ -173,7 +172,7 @@ function ErrolRoutingTable implements Iterator, Countable {
 }
 
 
-class ErrolRouteNotFoundException extends Exception {
+class DeanoRouteNotFoundException extends Exception {
 
 	public $code, $path;
   
@@ -185,7 +184,7 @@ class ErrolRouteNotFoundException extends Exception {
 
 }
 
-class ErrolRouteDuplicationException extends Exception {
+class DeanoRouteDuplicationException extends Exception {
 
 	public $location, $handler, $method;
 
