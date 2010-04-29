@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# 1 = local directory
+# 2 = username
+# 3 = host
+# 4 = dir to website
+#cd $1
+dir=$1
+user=$2
+host=$3
+www=$4
+echo Rsyncing...
+rsync -rtv --cvs-exclude --delete --include-from=${dir}/.rsync_include ${dir}/* ${user}@${host}:${www}
+echo ...Done

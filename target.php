@@ -1,5 +1,5 @@
 <?php
-require 'errol.php'
+require 'deano.php';
 
 route('/','root');
 function root(){
@@ -12,3 +12,4 @@ function notFound(){
 }
 
 ?>
+<p>end of target</p>

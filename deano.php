@@ -46,8 +46,8 @@ function url_for(/*function*/$handler){
 ////////////////////////// CLASSES //////////////////////////////
 class DeanoRouter {
 
-	static private handlerList = array();
-	static private errorHandlers = array();
+	private static $handlerList;// = array();
+  private static $errorHandlers;// = array();
 
 	static public function getPathForHandler(/*function*/$handler){
 		throw new Exception("Not yet implemented.");
@@ -115,18 +115,18 @@ class DeanoRoute {
 
 }
 
-function DeanoRoutingTable implements Iterator, Countable {
+class DeanoRoutingTable implements Iterator, Countable {
 	private $list;
 
 	public function __construct(){
 		$this->list = array();
 	}
 
-	public addRoute(DeanoRoute $route){
+	public function addRoute(/*DeanoRoute*/ $route){
 		$this->list[] = $route;
 	}
 
-	public getRoute($location, $method=null){
+	public function getRoute($location, $method=null){
 		//this needs to be made more efficient. a lot more efficient.
 		foreach($this->list as $route){
 			if($route->location == $location && $route->method = $method){
@@ -191,7 +191,7 @@ class DeanoRouteDuplicationException extends Exception {
 	function __construct($location, $handler, $method){
 		$this->location = $location;
 		$this->handler = $handler;
-		$this->method
+		$this->method = $method;
 		$this->message = "Duplicate route detected: [{$method}]->[{$location}]->[{$handler}]";
 	}
 }
