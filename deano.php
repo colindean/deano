@@ -43,6 +43,14 @@ function errorHandler(/* int matching http error code */ $code,
 function url_for(/*function*/$handler){
   return DeanoRouter::getPathForHandler($handler);
 }
+
+function run(){
+	DeanoRouter::run();
+}
+
+function dlog($message, $level=DeanoLog::INFO){
+	DeanoLog::addLog($message, $level);
+}
 ////////////////////////// CLASSES //////////////////////////////
 class DeanoRouter {
 
@@ -56,7 +64,8 @@ class DeanoRouter {
 	static public function defineRoute(/* regex */ $path, 
 												 /*function or method*/ $handler, 
 												 /*string*/ $method=null){
-		if( array_key_exists ($code, self::$handlerList) ){
+		dlog("Defining route {$method} {$path} with handler {$handler}");
+		if( array_key_exists ($path, self::$handlerList) ){
 			throw new DeanoRouteDuplicationException($path, $handler);
 		} else {
 			self::$handlerList[$path] = array('handler'=>$handler, 
@@ -66,6 +75,7 @@ class DeanoRouter {
 
 	static public function addErrorHandler(/*int matching http error code*/ $code,
 											/*function or method*/ $handler){
+		dlog("Defining error handler {$handler} for code {$code}");
 		if( array_key_exists ($code, self::$errorHandlers) ){
 			throw new DeanoRouteDuplicationException($code, $handler);
 		} else {
@@ -81,23 +91,38 @@ class DeanoRouter {
 		}
   }
 	static public function getErrorHandler(/*int*/$code){
-		if( array_key_exists($path, self::$errorHandlers) ){
+		if( array_key_exists($code, self::$errorHandlers) ){
 			return self::$errorHandlers[$code];
 		} else {
 			return "DeanoRouter::defaultErrorHandler";
 		}
 	}
 
+	static public function init(){
+		self::$handlerList = array();
+		self::$errorHandlers = array();
+	}
+
 	static public function run(){
 		//get the requested path
-    $path = $_SERVER['PATH'];
+    $path = array_key_exists('PATH_INFO', $_SERVER) ? $_SERVER['PATH_INFO'] : $_SERVER['REQUEST_URI'];
+		$method = $_SERVER['REQUEST_METHOD'];
+		dlog("Getting handler for path {$path} method {$method}");
 		try {
 			$handler = self::getHandler($path);
+			dlog("Handler for {$method} {$path} is {$handler}, calling");
 			$handler();
 		} catch (DeanoRouteNotFoundException $routeException) {
-			$errorHandler = self::$getErrorHandler($routerException->code);
+			dlog("Handler for {$method} {$path} not found", DeanoLog::WARN);
+			$errorHandler = self::getErrorHandler($routeException->code);
+			dlog("Error handler for {$routeException->code} is {$errorHandler}, calling");
 			$errorHandler($routeException);
 		}
+		
+			if(DEANO_LOG){
+				DeanoLog::prettyPrint();
+			}
+		
   }
 
 }
@@ -195,3 +220,50 @@ class DeanoRouteDuplicationException extends Exception {
 		$this->message = "Duplicate route detected: [{$method}]->[{$location}]->[{$handler}]";
 	}
 }
+
+class DeanoLog {
+	private static $log; //array();
+
+	private static $start_time; //microtime(true);
+	const INFO = "info";
+	const WARN = "warn";
+	const ERROR = "error";
+
+	static public function init(){
+		self::$start_time = microtime();
+		self::$log = array();
+		if(!defined('DEANO_LOG')){define('DEANO_LOG', false);}
+		self::addLog("DeanoLog started");
+	}
+	static public function addLog(/*string*/$message, $level=DeanoLog::INFO){
+		$time = microtime() - self::$start_time;
+		if(DEANO_LOG === false) return;
+		self::$log[] = array(
+											"time" => $time,
+											"level" => $level,
+											"message" => $message,
+											"location" => "",//this needs to be the class::method [filename:line#] of the caller
+											"memory" => self::_formatUsage(memory_get_peak_usage())
+									);
+	}
+
+	static public function getLog(){
+		return self::$log;
+	}
+
+	static public function prettyPrint(){
+		echo "<pre>";
+		var_dump(self::getLog());
+		echo "</pre>";
+	}
+	
+	private function _formatUsage( $bytes ) {
+  	$symbols = array('B', 'KiB', 'MiB', 'GiB', 'TiB' );
+    $exp = floor( log( $bytes ) / log( 1024 ) );
+    $formatted = ( $bytes / pow( 1024, floor( $exp ) ) );
+    return sprintf( '%.2f ' . $symbols[ $exp ], $formatted );
+  }
+}
+DeanoLog::init();
+DeanoRouter::init();
+?>

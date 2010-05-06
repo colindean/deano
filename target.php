@@ -1,4 +1,5 @@
 <?php
+define('DEANO_LOG', true);
 require 'deano.php';
 
 route('/','root');
@@ -11,5 +12,6 @@ function notFound(){
 	echo "Not found!";
 }
 
+run();
 ?>
 <p>end of target</p>
