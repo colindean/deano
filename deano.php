@@ -111,7 +111,7 @@ class DeanoRouter {
 		try {
 			$handler = self::getHandler($path);
 			dlog("Handler for {$method} {$path} is {$handler}, calling");
-			$handler();
+			$handler['handler']();
 		} catch (DeanoRouteNotFoundException $routeException) {
 			dlog("Handler for {$method} {$path} not found", DeanoLog::WARN);
 			$errorHandler = self::getErrorHandler($routeException->code);
