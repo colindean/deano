@@ -4,8 +4,14 @@ require 'deano.php';
 
 route('/','root');
 function root(){
-	echo "I guess she thought he was Errol Flynn";
+	echo '<p><a href="about">About?</a></p>';
 }
+
+route('/about','about');
+function about(){
+	echo "This is the about page.";
+  echo sprintf('<a href="%s">This should link to root</a>', url_for('root'));
+} 
 
 errorHandler(404, 'notFound');
 function notFound(){
@@ -14,4 +20,5 @@ function notFound(){
 
 run();
 ?>
+
 <p>end of target</p>

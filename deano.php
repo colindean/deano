@@ -66,7 +66,7 @@ class DeanoRouter {
 												 /*string*/ $method=null){
 		dlog("Defining route {$method} {$path} with handler {$handler}");
 		if( array_key_exists ($path, self::$handlerList) ){
-			throw new DeanoRouteDuplicationException($path, $handler);
+			throw new DeanoRouteDuplicationException($path, $handler, $method);
 		} else {
 			self::$handlerList[$path] = array('handler'=>$handler, 
 																				'method'=>$method);
@@ -107,6 +107,7 @@ class DeanoRouter {
 		//get the requested path
     $path = array_key_exists('PATH_INFO', $_SERVER) ? $_SERVER['PATH_INFO'] : $_SERVER['REQUEST_URI'];
 		$method = $_SERVER['REQUEST_METHOD'];
+		$phpNeedsAGoramFinally = false;
 		dlog("Getting handler for path {$path} method {$method}");
 		try {
 			$handler = self::getHandler($path);
@@ -117,11 +118,19 @@ class DeanoRouter {
 			$errorHandler = self::getErrorHandler($routeException->code);
 			dlog("Error handler for {$routeException->code} is {$errorHandler}, calling");
 			$errorHandler($routeException);
-		}
-		
-			if(DEANO_LOG){
+		} catch (Exception $e) {
+			echo '<div class="deano-exception" style="border:1px solid red;background-color:#fdd;padding:1em">'.
+						'<div><strong>Uncaught general exception</strong></div>'.
+						"<div>{$e}</div>".
+						"</div>";
+			if(DEANO_LOG && $phpNeedsAGoramFinally='true'){
 				DeanoLog::prettyPrint();
 			}
+		}
+		
+		if(DEANO_LOG && !$phpNeedsAGoramFinally){
+			DeanoLog::prettyPrint();
+		}
 		
   }
 
@@ -252,9 +261,29 @@ class DeanoLog {
 	}
 
 	static public function prettyPrint(){
+		self::prettyPrintTable();
+	}
+
+	static public function prettyPrintText(){
 		echo "<pre>";
 		var_dump(self::getLog());
 		echo "</pre>";
+	}
+
+	static public function prettyPrintTable(){
+		echo "<table><thead><tr>";
+		foreach (array("Time","Level","Message","Location","Memory") as $h){
+			echo "<th>{$h}</th>";
+		}
+		echo "</tr></thead><tbody>";
+		foreach(self::getLog() as $ln){
+			echo sprintf(
+				'<tr><td>%f</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>',
+				$ln['time'], $ln['level'], $ln['message'], 
+				$ln['location'], $ln['memory']
+			);
+		}
+		echo "</tbody></table>";
 	}
 	
 	private function _formatUsage( $bytes ) {
