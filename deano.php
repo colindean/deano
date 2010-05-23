@@ -89,13 +89,14 @@ class DeanoRouter {
 		try {
 			return self::$errorTable->getRoute($code);
 		} catch (DeanoRouteErrorException $e) {
+				dlog("No error handler for {$code}, using default");
 			self::$errorException = $e;
 			return "DeanoRouter::defaultErrorHandler";
 		}
 	}
 
 	static public function defaultErrorHandler($e){
-		header("HTTP/1.1 {$e->code} {$e->status}");
+		$e->header();
 		header("Content-Type: text/html");
 		echo("<html><head><title>{$e->code} {$e->status}</title></head><body>".
 					"<h1>{$e->code} {$e->status}</h1>");
@@ -119,8 +120,8 @@ class DeanoRouter {
 		} catch (DeanoRouteErrorException $routeException) {
 					dlog("Handler for [{$method} {$path}] not found", DeanoLog::WARN);
 			$errorHandler = self::getErrorHandler($routeException->code);
-					dlog("Error handler for {$routeException->code} is {$errorHandler}, calling");
-			$errorHandler($routeException);
+					dlog("Error handler for {$routeException->code} is {$errorHandler->handler}, calling");
+			call_user_func($errorHandler->handler, $routeException);
 		} catch (Exception $e) {
 			echo '<div class="deano-exception" style="border:1px solid red;background-color:#fdd;padding:1em">'.
 						'<div><strong>Uncaught general exception</strong></div>'.
@@ -237,12 +238,16 @@ class DeanoRoutingTable implements Iterator, Countable {
 
 class DeanoRouteErrorException extends Exception {
 	public $code, $path, $method, $status;
-	function __construct($code, $path, $method=null){
+	public function __construct($code, $path, $method=null){
 		$this->message = "General error at [{$method} {$path}]";
 		$this->code = $code;
 		$this->path = $path;
 		$this->method = $method;
 		$this->status = '';
+	}
+
+	public function header(){
+		header("HTTP/1.1 {$this->code} {$this->status}");
 	}
 }
 
