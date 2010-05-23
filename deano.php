@@ -65,6 +65,15 @@ class DeanoRouter {
 												 /*function or method*/ $handler, 
 												 /*string*/ $method=null){
 		dlog("Defining route {$method} {$path} with handler {$handler}");
+		//addRoute will throw an exception if a route already exists
+		//don't catch it here, as it's a development problem, not a user error
+		self::$handlerTable->addRoute(new DeanoRoute($path, $handler, $method));
+	}
+		
+	static public function defineRoute(/* regex */ $path, 
+												 /*function or method*/ $handler, 
+												 /*string*/ $method=null){
+		dlog("Defining route {$method} {$path} with handler {$handler}");
 		if( array_key_exists ($path, self::$handlerList) ){
 			throw new DeanoRouteDuplicationException($path, $handler, $method);
 		} else {
@@ -72,6 +81,14 @@ class DeanoRouter {
 																				'method'=>$method);
 		}
   }
+	
+	static public function addErrorHandler(/*int matching http error code*/ $code,
+											/*function or method*/ $handler){
+		dlog("Defining error handler {$handler} for code {$code}");
+		//addRoute will throw an exception if a route already exists
+		//don't catch it here, as it's a development problem, not a user error
+		self::$errorTable->addRoute(new DeanoRoute($code, $handler));
+	}
 
 	static public function addErrorHandler(/*int matching http error code*/ $code,
 											/*function or method*/ $handler){
@@ -82,6 +99,15 @@ class DeanoRouter {
 			self::$errorHandlers[$code] = $handler;
 		}
 	}
+	
+	static public function getHandler(/*regex*/$path, /*method*/$method=null){
+		//getRoute will return null if there isn't a route which matches
+		if($handler = self::$handlerTable->getRoute($path, $method)){
+			return $handler;
+		} else {
+			throw new DeanRouteNotFoundException(404, $path, $method);
+		}
+	}
 
   static public function getHandler(/*regex*/ $path){
 		if( array_key_exists($path, self::$handlerList) ){
@@ -90,6 +116,10 @@ class DeanoRouter {
 			throw new DeanoRouteNotFoundException(404, $path);
 		}
   }
+
+	static public function getErrorHandler(/*int*/$code){
+		return self::$errorTable->getRoute($code);
+	}
 	static public function getErrorHandler(/*int*/$code){
 		if( array_key_exists($code, self::$errorHandlers) ){
 			return self::$errorHandlers[$code];
@@ -101,6 +131,8 @@ class DeanoRouter {
 	static public function init(){
 		self::$handlerList = array();
 		self::$errorHandlers = array();
+		self::$handlerTable = new DeanoRoutingTable();
+		self::$errorTable = new DeanoRoutingTable();
 	}
 
 	static public function run(){
@@ -137,9 +169,9 @@ class DeanoRouter {
 }
 
 class DeanoRoute {
-	private $path;
-	private $handler;
-	private $method;
+	public $path;
+	public $handler;
+	public $method;
 
 	function __construct($path, $handler, $method=null){
 		$this->path = $path;
@@ -157,7 +189,12 @@ class DeanoRoutingTable implements Iterator, Countable {
 	}
 
 	public function addRoute(/*DeanoRoute*/ $route){
-		$this->list[] = $route;
+		//check if a route with the same params already exists in the list
+		if(!in_array($route, $this->list)){
+			$this->list[] = $route;
+		} else {
+			throw new DeanoRouteDuplicationException($route);
+		}
 	}
 
 	public function getRoute($location, $method=null){
@@ -167,7 +204,12 @@ class DeanoRoutingTable implements Iterator, Countable {
 				return $route;
 			}
 		}
+		//not found? null
+		return null;
 	}
+
+	//I don't think there's a distinct need for delete route
+
   /*
 	public getRoute($location, $method=null){
 		if(!array_key_exists($location, $this->list)){
@@ -210,8 +252,8 @@ class DeanoRouteNotFoundException extends Exception {
 
 	public $code, $path;
   
-	function __construct($code, $path){
-		$this->message = "Route not found: [{$path}]";
+	function __construct($code, $path, $method=null){
+		$this->message = "Route not found: [{$method} {$path}]";
 		$this->code = $code;
 		$this->path = $path;
 	}
@@ -221,12 +263,18 @@ class DeanoRouteNotFoundException extends Exception {
 class DeanoRouteDuplicationException extends Exception {
 
 	public $location, $handler, $method;
+	public $route;
 
 	function __construct($location, $handler, $method){
 		$this->location = $location;
 		$this->handler = $handler;
 		$this->method = $method;
-		$this->message = "Duplicate route detected: [{$method}]->[{$location}]->[{$handler}]";
+		$this->message = "Duplicate route detected: [{$method} {$location}]->[{$handler}]";
+	}
+
+	function __construct($route){
+	$this->route = $route;
+	$this->message = "Duplicate route detected: [{$route->method}]->[{$route->location}]->[{$route->handler}]";
 	}
 }
 
