@@ -19,7 +19,7 @@ by Colin Dean
 function route(/* regex */ $path, 
 							 /*function or method*/ $handler, 
 							 /*string*/ $method=null){
-	DeanoRouter::defineRoute($path, $handler, $method);
+	DeanoRouter::addRoute($path, $handler, $method);
 }
 /**
  * Add an error handler in userspace. The error handler function must accept
@@ -40,8 +40,8 @@ function errorHandler(/* int matching http error code */ $code,
  * @param function $handler the function the path of which is desired
  * @return string the path which should be used
  **/
-function url_for(/*function*/$handler){
-  return DeanoRouter::getPathForHandler($handler);
+function url_for(/*function*/$handler, $method=null){
+  return DeanoRouter::getPathForHandler($handler, $method);
 }
 
 function run(){
@@ -54,34 +54,23 @@ function dlog($message, $level=DeanoLog::INFO){
 ////////////////////////// CLASSES //////////////////////////////
 class DeanoRouter {
 
-	private static $handlerList;// = array();
-  private static $errorHandlers;// = array();
+	private static $handlerTable;// = array();
+  private static $errorTable;// = array();
+	private static $errorException;//this belongs elsewhere, but dunno where
 
-	static public function getPathForHandler(/*function*/$handler){
-		throw new Exception("Not yet implemented.");
+	static public function getPathForHandler(/*function*/$handler, $method=null){
+		return self::$handlerTable->getRouteByHandler($handler, $method);
 	}
 
-	static public function defineRoute(/* regex */ $path, 
+	static public function addRoute(/* regex */ $path, 
 												 /*function or method*/ $handler, 
 												 /*string*/ $method=null){
-		dlog("Defining route {$method} {$path} with handler {$handler}");
+		dlog("Defining route [{$method} {$path}] with handler {$handler}");
 		//addRoute will throw an exception if a route already exists
 		//don't catch it here, as it's a development problem, not a user error
 		self::$handlerTable->addRoute(new DeanoRoute($path, $handler, $method));
 	}
 		
-	static public function defineRoute(/* regex */ $path, 
-												 /*function or method*/ $handler, 
-												 /*string*/ $method=null){
-		dlog("Defining route {$method} {$path} with handler {$handler}");
-		if( array_key_exists ($path, self::$handlerList) ){
-			throw new DeanoRouteDuplicationException($path, $handler, $method);
-		} else {
-			self::$handlerList[$path] = array('handler'=>$handler, 
-																				'method'=>$method);
-		}
-  }
-	
 	static public function addErrorHandler(/*int matching http error code*/ $code,
 											/*function or method*/ $handler){
 		dlog("Defining error handler {$handler} for code {$code}");
@@ -90,47 +79,29 @@ class DeanoRouter {
 		self::$errorTable->addRoute(new DeanoRoute($code, $handler));
 	}
 
-	static public function addErrorHandler(/*int matching http error code*/ $code,
-											/*function or method*/ $handler){
-		dlog("Defining error handler {$handler} for code {$code}");
-		if( array_key_exists ($code, self::$errorHandlers) ){
-			throw new DeanoRouteDuplicationException($code, $handler);
-		} else {
-			self::$errorHandlers[$code] = $handler;
-		}
-	}
-	
-	static public function getHandler(/*regex*/$path, /*method*/$method=null){
+	static public function getRoute(/*regex*/$path, /*method*/$method=null){
 		//getRoute will return null if there isn't a route which matches
-		if($handler = self::$handlerTable->getRoute($path, $method)){
-			return $handler;
-		} else {
-			throw new DeanRouteNotFoundException(404, $path, $method);
-		}
+		return self::$handlerTable->getRoute($path, $method);
 	}
 
-  static public function getHandler(/*regex*/ $path){
-		if( array_key_exists($path, self::$handlerList) ){
-			return self::$handlerList[$path];
-		} else {
-			throw new DeanoRouteNotFoundException(404, $path);
-		}
-  }
-
 	static public function getErrorHandler(/*int*/$code){
-		return self::$errorTable->getRoute($code);
-	}
-	static public function getErrorHandler(/*int*/$code){
-		if( array_key_exists($code, self::$errorHandlers) ){
-			return self::$errorHandlers[$code];
-		} else {
+		//this must always return something, so put a trycatch here
+		try {
+			return self::$errorTable->getRoute($code);
+		} catch (DeanoRouteErrorException $e) {
+			self::$errorException = $e;
 			return "DeanoRouter::defaultErrorHandler";
 		}
 	}
 
+	static public function defaultErrorHandler($e){
+		header("HTTP/1.1 {$e->code} {$e->status}");
+		header("Content-Type: text/html");
+		echo("<html><head><title>{$e->code} {$e->status}</title></head><body>".
+					"<h1>{$e->code} {$e->status}</h1>");
+	}
+
 	static public function init(){
-		self::$handlerList = array();
-		self::$errorHandlers = array();
 		self::$handlerTable = new DeanoRoutingTable();
 		self::$errorTable = new DeanoRoutingTable();
 	}
@@ -140,15 +111,15 @@ class DeanoRouter {
     $path = array_key_exists('PATH_INFO', $_SERVER) ? $_SERVER['PATH_INFO'] : $_SERVER['REQUEST_URI'];
 		$method = $_SERVER['REQUEST_METHOD'];
 		$phpNeedsAGoramFinally = false;
-		dlog("Getting handler for path {$path} method {$method}");
+				dlog("Getting handler for path {$path} method {$method}");
 		try {
-			$handler = self::getHandler($path);
-			dlog("Handler for {$method} {$path} is {$handler}, calling");
-			$handler['handler']();
-		} catch (DeanoRouteNotFoundException $routeException) {
-			dlog("Handler for {$method} {$path} not found", DeanoLog::WARN);
+			$route = self::getRouteByLocation($path, $method);
+					dlog("Handler for {$method} {$path} is {$handler}, calling");
+			($route->handler)();
+		} catch (DeanoRouteErrorException $routeException) {
+					dlog("Handler for {$method} {$path} not found", DeanoLog::WARN);
 			$errorHandler = self::getErrorHandler($routeException->code);
-			dlog("Error handler for {$routeException->code} is {$errorHandler}, calling");
+					dlog("Error handler for {$routeException->code} is {$errorHandler}, calling");
 			$errorHandler($routeException);
 		} catch (Exception $e) {
 			echo '<div class="deano-exception" style="border:1px solid red;background-color:#fdd;padding:1em">'.
@@ -159,7 +130,7 @@ class DeanoRouter {
 				DeanoLog::prettyPrint();
 			}
 		}
-		
+
 		if(DEANO_LOG && !$phpNeedsAGoramFinally){
 			DeanoLog::prettyPrint();
 		}
@@ -197,47 +168,63 @@ class DeanoRoutingTable implements Iterator, Countable {
 		}
 	}
 
-	public function getRoute($location, $method=null){
-		//this needs to be made more efficient. a lot more efficient.
-		foreach($this->list as $route){
-			if($route->location == $location && $route->method = $method){
-				return $route;
-			}
+	public function getRouteByHandler($handler, $method=null){
+		$h = array_filter($this->list,
+												create_function('$r',
+																				'return $r->handler == $handler;');
+		//if there's nothing there, throw a 404
+		if( count($h) == 0 ){
+			throw new DeanoRouteNotFoundException($handler, $method);
 		}
-		//not found? null
-		return null;
+		
+		//if there's only one and its method is null, return it
+		if( (count($h) == 1) && ($h[0]->method == null)){
+			return $h[0];
+		}
+
+		//now we have all routes which match the location, just need to match method
+		$byMethod = array_filter($h,
+															create_function('$r',
+																							'return $r->method == $method;');
+		if(count($byMethod) == 0){
+			throw new DeanoRouteNoMethodException($location, $method);
+		}
+		
+		return $byMethod[0];
+	}
+
+	public function getRoute($location, $method=null){
+		return $this->getRouteByLocation($location, $method);
+	}
+
+	public function getRouteByLocation($location, $method=null){
+		//rather than loop, filter by location and then by method
+		//does 5.3 support first class functions?
+		$byLoc = array_filter($this->list, 
+													create_function('$r',
+																					'return $r->location == $location;');
+		//if there's nothing there, throw a 404
+		if( (count($byLoc) == 0) ){
+			throw new DeanoRouteNotFoundException($location, $method);
+		}
+		//if there's only one and its method is null, return it
+		if( (count($byLoc) == 1) && ($byLoc[0]->method == null)){
+			return $byLoc[0];
+		}
+
+		//now we have all routes which match the location, just need to match method
+		$byMethod = array_filter($byLoc,
+															create_function('$r',
+																							'return $r->method == $method;');
+		if(count($byMethod) == 0){
+			throw new DeanoRouteNoMethodException($location, $method);
+		}
+		
+		return $byMethod[0];
 	}
 
 	//I don't think there's a distinct need for delete route
 
-  /*
-	public getRoute($location, $method=null){
-		if(!array_key_exists($location, $this->list)){
-			throw new DeanoRouteNotFoundException($location, $method);
-		}
-		$handlerSet = $this->list[$location];
-		if(is_string($handlerSet){
-			return $handlerSet;
-		}
-		if(is_array($handlerSet){
-			return $handlerSet[$method];
-		}
-	}
-
-	public addRoute($location, $handler, $method=null){
-		if(!$method){
-			if(array_key_exists($location, $this->list){
-				throw new ErrorRouteDuplicationException($location, $handler, $method);
-			}
-			$this->list[$location] = $handler;
-		} else {
-			if(array_key_exists($method, $this->list[$location])){
-				throw new DeanoRouteDuplicationException($location, $handler, $method);
-			}
-			$this->list[$location] = array($method => $handler);
-		}
-	}
-	*/
 	public function count(){return count($this->list);}
 	public function key(){return key($this->list);}
 	public function current(){return current($this->list);}
@@ -247,30 +234,36 @@ class DeanoRoutingTable implements Iterator, Countable {
 
 }
 
-
-class DeanoRouteNotFoundException extends Exception {
-
-	public $code, $path;
-  
+class DeanoRouteErrorException extends Exception {
+	public $code, $path, $method, $status;
 	function __construct($code, $path, $method=null){
-		$this->message = "Route not found: [{$method} {$path}]";
+		$this->message = "General error at [{$method} {$path}]";
 		$this->code = $code;
 		$this->path = $path;
+		$this->method = $method;
+		$this->status = '';
 	}
+}
 
+class DeanoRouteNotFoundException extends DeanoRouteErrorException {
+	function __construct($path, $method=null){
+		parent::__construct(404, $path, $method);
+		$this->message = "Route not found: [{$method} {$path}]";
+		$this->status = "Not Found";
+	}
+}
+
+class DeanoRouteNoMethodException extends DeanRouteErrorException {
+	function __construct($path, $method=null){
+		parent::__construct(405, $path, $method);
+		$this->message = "Route found, but not for given method [{$method} {$path}]";
+		$this->status = "Method Not Allowed";
+	}
 }
 
 class DeanoRouteDuplicationException extends Exception {
 
-	public $location, $handler, $method;
 	public $route;
-
-	function __construct($location, $handler, $method){
-		$this->location = $location;
-		$this->handler = $handler;
-		$this->method = $method;
-		$this->message = "Duplicate route detected: [{$method} {$location}]->[{$handler}]";
-	}
 
 	function __construct($route){
 	$this->route = $route;
