@@ -59,7 +59,7 @@ class DeanoRouter {
 	private static $errorException;//this belongs elsewhere, but dunno where
 
 	static public function getPathForHandler(/*function*/$handler, $method=null){
-		return self::$handlerTable->getRouteByHandler($handler, $method);
+		return self::$handlerTable->getRouteByHandler($handler, $method)->path;
 	}
 
 	static public function addRoute(/* regex */ $path, 
@@ -113,11 +113,11 @@ class DeanoRouter {
 		$phpNeedsAGoramFinally = false;
 				dlog("Getting handler for path {$path} method {$method}");
 		try {
-			$route = self::getRouteByLocation($path, $method);
-					dlog("Handler for {$method} {$path} is {$handler}, calling");
-			($route->handler)();
+			$route = self::getRoute($path, $method);
+					dlog("Handler for [{$method} {$path}] is {$route->handler}, calling");
+			call_user_func($route->handler);
 		} catch (DeanoRouteErrorException $routeException) {
-					dlog("Handler for {$method} {$path} not found", DeanoLog::WARN);
+					dlog("Handler for [{$method} {$path}] not found", DeanoLog::WARN);
 			$errorHandler = self::getErrorHandler($routeException->code);
 					dlog("Error handler for {$routeException->code} is {$errorHandler}, calling");
 			$errorHandler($routeException);
@@ -169,9 +169,9 @@ class DeanoRoutingTable implements Iterator, Countable {
 	}
 
 	public function getRouteByHandler($handler, $method=null){
-		$h = array_filter($this->list,
+		$h = array_values(array_filter($this->list,
 												create_function('$r',
-																				'return $r->handler == $handler;');
+																				'return $r->handler == "'.$handler.'";')));
 		//if there's nothing there, throw a 404
 		if( count($h) == 0 ){
 			throw new DeanoRouteNotFoundException($handler, $method);
@@ -183,9 +183,9 @@ class DeanoRoutingTable implements Iterator, Countable {
 		}
 
 		//now we have all routes which match the location, just need to match method
-		$byMethod = array_filter($h,
+		$byMethod = array_values(array_filter($h,
 															create_function('$r',
-																							'return $r->method == $method;');
+																							'return $r->method == "'.$method.'";')));
 		if(count($byMethod) == 0){
 			throw new DeanoRouteNoMethodException($location, $method);
 		}
@@ -200,9 +200,10 @@ class DeanoRoutingTable implements Iterator, Countable {
 	public function getRouteByLocation($location, $method=null){
 		//rather than loop, filter by location and then by method
 		//does 5.3 support first class functions?
-		$byLoc = array_filter($this->list, 
+		//using array_values to reindex the array by 0
+		$byLoc = array_values(array_filter($this->list, 
 													create_function('$r',
-																					'return $r->location == $location;');
+																					'return $r->path == "'.$location.'";')));
 		//if there's nothing there, throw a 404
 		if( (count($byLoc) == 0) ){
 			throw new DeanoRouteNotFoundException($location, $method);
@@ -213,9 +214,9 @@ class DeanoRoutingTable implements Iterator, Countable {
 		}
 
 		//now we have all routes which match the location, just need to match method
-		$byMethod = array_filter($byLoc,
+		$byMethod = array_values(array_filter($byLoc,
 															create_function('$r',
-																							'return $r->method == $method;');
+																							'return $r->method == "'.$method.'";')));
 		if(count($byMethod) == 0){
 			throw new DeanoRouteNoMethodException($location, $method);
 		}
@@ -253,7 +254,7 @@ class DeanoRouteNotFoundException extends DeanoRouteErrorException {
 	}
 }
 
-class DeanoRouteNoMethodException extends DeanRouteErrorException {
+class DeanoRouteNoMethodException extends DeanoRouteErrorException {
 	function __construct($path, $method=null){
 		parent::__construct(405, $path, $method);
 		$this->message = "Route found, but not for given method [{$method} {$path}]";
