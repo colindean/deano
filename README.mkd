@@ -1,0 +1,27 @@
+Deano Web Microframework
+========================
+
+by Colin Dean
+@colindean
+
+http://github.com/colindean/deano
+
+Introduction
+------------
+
+Deano is a web microframework written in PHP. It is heavily inspired by the 
+Sinatra web microframework written in Ruby. Its definition of routes uses a
+similar, but PHP-style syntax. It however does not come with a templating
+engine, as there are many of those already in existence where are easily
+integrated with Deano.
+
+Contributing
+------------
+
+Feel free to contribute as you see fit. Fork it on Github and submit pull
+requests. I'm generally very accepting and responsive.
+
+Licensing
+---------
+
+Please see the LICENSE file.
