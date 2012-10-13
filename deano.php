@@ -2,9 +2,13 @@
 /****
 Deano PHP framework
 by Colin Dean
-
+http://github.com/colindean/deano
+See LICENSE for your rights regarding use of this code.
 ****/
 //////////////////////// FUNCTIONS /////////////////////////////
+
+/// CONTROLLER HELPER METHODS
+
 /**
  * Add a route to the routing table.
  *
@@ -34,6 +38,25 @@ function errorHandler(/* int matching http error code */ $code,
 	DeanoRouter::addErrorHandler($code, $handler);
 }
 /**
+ * Run the router. This should be executed on the last line in the routes
+ * definition file.
+ */
+function run(){
+	DeanoRouter::run();
+}
+/**
+ * Log a message
+ *
+ * @param string $message The message to be logged
+ * @param string $level one of DeanoLog::INFO (default), ::WARN, ::ERROR
+ */
+function dlog($message, $level=DeanoLog::INFO){
+	DeanoLog::addLog($message, $level);
+}
+
+// VIEW HELPER METHODS
+
+/**
  * Return the relative URL for a certain handler. Use this to set routes and
  * reference the routes by handler function instead of the path itself.
  *
@@ -43,29 +66,36 @@ function errorHandler(/* int matching http error code */ $code,
 function url_for(/*function*/$handler, $method=null){
   return DeanoRouter::getPathForHandler($handler, $method);
 }
-
-function run(){
-	DeanoRouter::run();
-}
-
-function dlog($message, $level=DeanoLog::INFO){
-	DeanoLog::addLog($message, $level);
-}
-
+/**
+ * Render a full view stack
+ *
+ * @param string $template the filename of the template, relative to the views 
+ * directory
+ */
 function render($template){
   DeanoViewManager::getInstance()->render($template);
 }
+/**
+ * Render a partial, which is just a single view template
+ *
+ * @param string $template the filename of the template, relative to the views 
+ * directory
+ */
 function render_partial($template){
   DeanoViewManager::getInstance()->renderView($template);
 }
+/**
+ * Get the output of a view, should only be called once and within the layout 
+ * template
+ */
 function yield(){
   echo DeanoViewManager::getInstance()->getYield();
 }
 ////////////////////////// CLASSES //////////////////////////////
 class DeanoViewManager {
   private static $instance;
-
-  private $layoutPath, $templatePath, $yield, $viewsDir;
+  public $viewsDir;
+  private $layoutPath, $yield;
 
   private function __construct(){
     $this->viewsDir = "views";

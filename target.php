@@ -1,4 +1,5 @@
 <?php
+//this is an example of what a controller file should look like
 define('DEANO_LOG', true);
 require 'deano.php';
 
