@@ -20,17 +20,9 @@ function errt(){
 
 errorHandler(404, 'notFound');
 function notFound($e){
+  //you must call $e->header yourself in order to output the appropriate header
 	$e->header();
-	print_head();
-	echo "Not found!";
-}
-
-
-function print_head(){
-	echo "<h1>Deano</h1>";
+  render("errors/404");
 }
 
 run();
-?>
-
-<p>end of target</p>
