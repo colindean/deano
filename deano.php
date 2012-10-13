@@ -51,7 +51,64 @@ function run(){
 function dlog($message, $level=DeanoLog::INFO){
 	DeanoLog::addLog($message, $level);
 }
+
+function render($template){
+  DeanoViewManager::getInstance()->render($template);
+}
+function render_partial($template){
+  DeanoViewManager::getInstance()->renderView($template);
+}
+function yield(){
+  echo DeanoViewManager::getInstance()->getYield();
+}
 ////////////////////////// CLASSES //////////////////////////////
+class DeanoViewManager {
+  private static $instance;
+
+  private $layoutPath, $templatePath, $yield, $viewsDir;
+
+  private function __construct(){
+    $this->viewsDir = "views";
+    $this->layoutPath = $this->viewsDir.DIRECTORY_SEPARATOR."layout".DIRECTORY_SEPARATOR."layout.php";
+  }
+
+  public static function getInstance(){
+    if(!self::$instance){
+      self::$instance = new DeanoViewManager();
+    }
+    return self::$instance;
+  }
+
+  function render($template){
+    ob_start();
+    $this->renderView($template);
+    $this->yield = ob_get_contents();
+    ob_end_clean();
+    $this->renderView($this->layoutPath, true);
+    flush();
+  }
+  /**
+   * Render the view and store it in $yield
+   */
+  function renderView($template, $fullyResolved=false){
+    if(!$fullyResolved){
+      $templatePath = $this->viewsDir.DIRECTORY_SEPARATOR.$template.".php";
+    } else {
+      $templatePath = $template;
+    }
+    dlog("Rendering view {$templatePath}");
+    if(!file_exists($templatePath)){
+      throw new DeanoViewNotFoundException($templatePath);
+    }
+    include_once($templatePath);
+  }
+
+  function getYield(){
+    dlog(sprintf("Yielding view of %d bytes", strlen($this->yield))); 
+    return $this->yield;
+  }
+
+}
 class DeanoRouter {
 
 	private static $handlerTable;// = array();
@@ -271,10 +328,20 @@ class DeanoRouteDuplicationException extends Exception {
 
 	public $route;
 
-	function __construct($route){
-	$this->route = $route;
-	$this->message = "Duplicate route detected: [{$route->method}]->[{$route->location}]->[{$route->handler}]";
+  function __construct($route){
+	  $this->route = $route;
+	  $this->message = "Duplicate route detected: [{$route->method}]->[{$route->location}]->[{$route->handler}]";
 	}
+}
+
+class DeanoViewNotFoundException extends Exception {
+
+  public $template_path;
+
+  function __construct($template_path){
+    $this->template_path = $template_path;
+    $this->message = "View template not found: [{$template_path}]";
+  }
 }
 
 class DeanoLog {

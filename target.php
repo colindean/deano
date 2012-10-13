@@ -4,17 +4,18 @@ require 'deano.php';
 
 route('/','root');
 function root(){
-	print_head();
-	echo '<p><a href="'.url_for('about').'">About?</a></p>';
+  render("root");
 }
 
 route('/about','about');
 function about(){
-	print_head();
-	echo "This is the about page. ";
-  echo sprintf('<a href="%s">This should link to root</a>', url_for('root'));
-	echo ' <a href="error">This should cause a 404</a>.';
-} 
+  render("about");
+}
+
+route('/errt','errt');
+function errt(){
+
+}
 
 errorHandler(404, 'notFound');
 function notFound($e){
