@@ -91,6 +91,13 @@ function render_partial($template){
 function yield(){
   echo DeanoViewManager::getInstance()->getYield();
 }
+/**
+ * Get the current route. From this, look at its path, handler, or method 
+ * members. Useful for determining behavior within a view based on the route.
+ */
+function current_route(){
+  return DeanoRouter::getCurrentRoute();
+}
 ////////////////////////// CLASSES //////////////////////////////
 class DeanoViewManager {
   private static $instance;
@@ -143,7 +150,9 @@ class DeanoRouter {
 
 	private static $handlerTable;// = array();
   private static $errorTable;// = array();
-	private static $errorException;//this belongs elsewhere, but dunno where
+  private static $errorException;//this belongs elsewhere, but dunno where
+
+  public static $currentRoute;// the current DeanoRoute
 
 	static public function getPathForHandler(/*function*/$handler, $method=null){
 		return self::$handlerTable->getRouteByHandler($handler, $method)->path;
@@ -169,7 +178,11 @@ class DeanoRouter {
 	static public function getRoute(/*regex*/$path, /*method*/$method=null){
 		//getRoute will return null if there isn't a route which matches
 		return self::$handlerTable->getRoute($path, $method);
-	}
+  }
+
+  static public function getCurrentRoute(){
+    return self::$currentRoute;
+  }
 
 	static public function getErrorHandler(/*int*/$code){
 		//this must always return something, so put a trycatch here
@@ -201,7 +214,7 @@ class DeanoRouter {
 		$phpNeedsAGoramFinally = false;
 				dlog("Getting handler for path {$path} method {$method}");
 		try {
-			$route = self::getRoute($path, $method);
+      self::$currentRoute = $route = self::getRoute($path, $method);
 					dlog("Handler for [{$method} {$path}] is {$route->handler}, calling");
 			call_user_func($route->handler);
 		} catch (DeanoRouteErrorException $routeException) {
