@@ -98,7 +98,7 @@ class DeanoViewManager {
   private $layoutPath, $yield;
 
   private function __construct(){
-    $this->viewsDir = "views";
+    $this->viewsDir = __DIR__.DIRECTORY_SEPARATOR."views";
     $this->layoutPath = $this->viewsDir.DIRECTORY_SEPARATOR."layout".DIRECTORY_SEPARATOR."layout.php";
   }
 
