@@ -2,7 +2,6 @@ Deano Web Microframework
 ========================
 
 by Colin Dean
-@colindean
 
 http://github.com/colindean/deano
 
@@ -21,7 +20,11 @@ Contributing
 Feel free to contribute as you see fit. Fork it on Github and submit pull
 requests. I'm generally very accepting and responsive.
 
+If you use Deano in one of your projects, please let me know! I'd love to
+build a gallery of sites using it.
+
 Licensing
 ---------
 
-Please see the LICENSE file.
+Deano is licensed under the terms of the MIT license. Please see the LICENSE 
+file for more information.
