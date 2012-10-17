@@ -450,6 +450,8 @@ class DeanoLog {
     return sprintf( '%.2f ' . $symbols[ $exp ], $formatted );
   }
 }
+//for PHP < 5.3.0
+if ( !defined('__DIR__') ) define('__DIR__', dirname(__FILE__));
 DeanoLog::init();
 DeanoRouter::init();
 ?>
