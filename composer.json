@@ -1,0 +1,19 @@
+{
+    "name": "colindean/deano",
+    "type": "library",
+    "description": "Web microframework for quick development",
+    "keywords": ["web","framework","sinatra","microframework"],
+    "homepage": "http://github.com/colindean/deano",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Colin Dean",
+            "email": "git+deano@cad.cx",
+            "homepage": "http://cad.cx",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.2.4"
+    }
+}
