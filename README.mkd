@@ -6,7 +6,7 @@ by Colin Dean
 http://github.com/colindean/deano
 
 Help fund development: 
-[![Gittip](http://badgr.co/Gittip/colindean.png)](https://www.gittip.com/colindean/)
+[![Gittip](http://img.shields.io/gittip/colindean.png)](https://www.gittip.com/colindean/)
 
 Introduction
 ------------
