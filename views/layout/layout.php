@@ -1,5 +1,5 @@
 <?php
 render_partial("layout/header");
-yield();
+yield_view();
 render_partial("layout/footer");
 ?>

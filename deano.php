@@ -88,8 +88,8 @@ function render_partial($template){
  * Get the output of a view, should only be called once and within the layout 
  * template
  */
-function yield(){
-  echo DeanoViewManager::getInstance()->getYield();
+function yield_view(){
+  echo DeanoViewManager::getInstance()->getYieldView();
 }
 /**
  * Get the current route. From this, look at its path, handler, or method 
@@ -102,7 +102,7 @@ function current_route(){
 class DeanoViewManager {
   private static $instance;
   public $viewsDir;
-  private $layoutPath, $yield;
+  private $layoutPath, $yieldView;
 
   private function __construct(){
     $this->viewsDir = __DIR__.DIRECTORY_SEPARATOR."views";
@@ -119,13 +119,13 @@ class DeanoViewManager {
   function render($template){
     ob_start();
     $this->renderView($template);
-    $this->yield = ob_get_contents();
+    $this->yieldView = ob_get_contents();
     ob_end_clean();
     $this->renderView($this->layoutPath, true);
     flush();
   }
   /**
-   * Render the view and store it in $yield
+   * Render the view and store it in $yieldView
    */
   function renderView($template, $fullyResolved=false){
     if(!$fullyResolved){
@@ -140,9 +140,9 @@ class DeanoViewManager {
     include_once($templatePath);
   }
 
-  function getYield(){
-    dlog(sprintf("Yielding view of %d bytes", strlen($this->yield))); 
-    return $this->yield;
+  function getYieldView(){
+    dlog(sprintf("Yielding view of %d bytes", strlen($this->yieldView))); 
+    return $this->yieldView;
   }
 
 }
